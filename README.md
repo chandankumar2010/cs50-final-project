@@ -35,7 +35,7 @@ This is a **Pomodoro App** built in Python, which helps users manage their work 
 
    ```bash
    python3 -m venv venv
-   source venv/bin/activate  # On Windows use: venv\Scriptsctivate
+   source venv/bin/activate  # On Windows use: venv\Scripts\activate
    ```
 
 3. **Install dependencies**:
