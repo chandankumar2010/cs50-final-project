@@ -13,12 +13,16 @@ def main():
 
     # Get the user input for duration of breaks and pomodoro and no of sessions
     duration_of_pomodoro, pomodoro_tag, duration_of_break, no_of_sessions = get_user_input()
+    print()
 
     # Initilize the SQLite db
     conn = db_initialization()
 
     #Start the pomodoro sessions
     pomodoro(conn, duration_of_pomodoro, duration_of_break, no_of_sessions, pomodoro_tag)
+
+    # Complete the sessions and export data
+    complete_sessions(conn)
 
     # Close the DB connection
     conn.close()
@@ -36,18 +40,22 @@ def db_initialization():
     Returns:
         sqlite3.Connection : Returns the connection object to the database
     '''
-    conn = sqlite3.connect("pomodoro_sessions.db")
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS sessions  (
-                   id INTEGER PRIMARY KEY,
-                   session_date TEXT,
-                   session_number INTEGER,
-                   tag TEXT
-                   )
-                   ''')
-    conn.commit()
-    return conn
+    try:
+        conn = sqlite3.connect("pomodoro_sessions.db")
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS sessions  (
+                       id INTEGER PRIMARY KEY,
+                       session_date TEXT,
+                       session_number INTEGER,
+                       tag TEXT
+                       )
+                       ''')
+        conn.commit()
+        return conn
+    except sqlite3.Error as e:
+        print(f"Error initializing database: {e}")
+        return None
 
 def update_session(conn, session_number, pomodoro_tag):
     '''
@@ -59,27 +67,38 @@ def update_session(conn, session_number, pomodoro_tag):
     Returns:
         none
     '''
-    
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO sessions (session_date, session_number, tag)
-        VALUES (?, ?, ?)
-        ''', (datetime.now().strftime("%Y-%m-%d"), session_number, pomodoro_tag))
-    conn.commit()
-
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO sessions (session_date, session_number, tag)
+            VALUES (?, ?, ?)
+            ''', (datetime.now().strftime("%Y-%m-%d"), session_number, pomodoro_tag))
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f"Error updating sessions: {e}")
 
 def export_csv(conn):
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT * FROM sessions WHERE session_date = ?
-    ''', (datetime.now().strftime("%Y-%m-%d"),))
+    '''
+    Export the session data into a CSV file.
 
-    rows = cursor.fetchall()
+    Args:
+        conn (sqlite3.Connection): Connection object to the database.
+    '''
 
-    with open(f'pomodoro_report_{datetime.now().strftime("%Y-%m-%d")}.csv', 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(['ID', 'Date', 'Session Number', 'Tag'])
-        writer.writerows(rows)
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT * FROM sessions WHERE session_date = ?
+        ''', (datetime.now().strftime("%Y-%m-%d"),))
+
+        rows = cursor.fetchall()
+
+        with open(f'pomodoro_report_{datetime.now().strftime("%Y-%m-%d")}.csv', 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(['ID', 'Date', 'Session Number', 'Tag'])
+            writer.writerows(rows)
+    except Exception as e:
+        print(f"Error exporting CSV: {e}")
 
 
 
@@ -103,7 +122,7 @@ def get_user_input():
     '''
         
     duration_of_pomodoro = input_validation("Enter work session duration in Minutes: ")
-    pomodoro_tag = input("Tag your pomodoro session(Optional): ")
+    pomodoro_tag = input("Tag your pomodoro session(Optional): ").strip() or "Untitled"
     duration_of_break = input_validation("Enter break session duration in Minutes: ")
     no_of_sessions = input_validation("Enter the number of Pomodoro sessions: ")
 
@@ -145,7 +164,7 @@ def countdown(minutes):
     '''
 
     # Change minutes into seconds
-    seconds = minutes * 10
+    seconds = minutes * 60
 
     # Display the timer till the seconds turns to 0
     while seconds:
@@ -176,7 +195,7 @@ def pomodoro(conn, duration_of_pomodoro, duration_of_break, no_of_sessions, pomo
     Calls the countdown function for work durations and break duration for number of sessions
 
     Args:
-       sqlite.connection, str, int, int, int
+       sqlite.connection, int, int, int, str
     
     Returns:
         none
@@ -204,10 +223,16 @@ def pomodoro(conn, duration_of_pomodoro, duration_of_break, no_of_sessions, pomo
         notify("##### Break session ends! 🛑 #####")
         time.sleep(1)
     
-    # Export to CSV
+
+def complete_sessions(conn):
+    '''
+    Completes the sessions by exporting to CSV and notifying the user.
+
+    Args:
+        conn (sqlite3.Connection): Connection object to the database.
+    '''
     export_csv(conn)
     notify("Congratulations!🎉  All Pomodoro sessions completed!⭐️")
-        
 
 if __name__ == "__main__":
     main()
