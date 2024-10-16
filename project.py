@@ -164,7 +164,7 @@ def countdown(minutes):
     '''
 
     # Change minutes into seconds
-    seconds = minutes * 60
+    seconds = minutes * 5
 
     # Display the timer till the seconds turns to 0
     while seconds:
@@ -183,8 +183,12 @@ def notify(message, chime_sound="info"):
     chime.theme = 'material'
     print(message)
 
-    if chime_sound == 'success':
+    if chime_sound == "success":
         chime.success()
+    elif chime_sound == "long":
+        chime.info()
+        time.sleep(0.5)
+        chime.info()
     else:
         chime.info()
     print()
@@ -216,12 +220,22 @@ def pomodoro(conn, duration_of_pomodoro, duration_of_break, no_of_sessions, pomo
         update_session(conn, session, pomodoro_tag)
         time.sleep(1)
 
-        # Break session
-        notify("##### Break session starts! 🧁 #####")
-        time.sleep(1)
-        countdown(duration_of_break)
-        notify("##### Break session ends! 🛑 #####")
-        time.sleep(1)
+        # Break session -> Long if session is multiple of 4 else short break
+        if session % 4 == 0:
+            # long break
+            notify("##### Long break session starts! 🧁🧁 #####", "long")
+            time.sleep(1)
+            countdown(duration_of_break * 2)
+            notify("##### Long break session ends! 🛑 #####", "long")
+            time.sleep(1)
+        else:
+            # Short break
+            notify("##### Short break session starts! 🧁 #####")
+            time.sleep(1)
+            countdown(duration_of_break)
+            notify("##### Short break session ends! 🛑 #####")
+            time.sleep(1)
+        
     
 
 def complete_sessions(conn):
