@@ -164,8 +164,8 @@ def countdown(minutes):
     '''
 
     # Change minutes into seconds
-    seconds = minutes * 5
-
+    seconds = minutes * 60
+    
     # Display the timer till the seconds turns to 0
     while seconds:
         mins, secs = divmod(seconds, 60)
